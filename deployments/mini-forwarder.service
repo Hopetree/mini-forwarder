@@ -7,8 +7,8 @@ Wants=network-online.target
 Type=simple
 
 # 用户和组 (建议创建专用用户)
-User=nobody
-Group=nogroup
+User=root
+Group=root
 
 # 二进制路径
 ExecStart=/usr/local/bin/mini-forwarder -config /etc/mini-forwarder/forwarder.yaml
