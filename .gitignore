@@ -1,5 +1,5 @@
 # Binaries
-mini-forwarder
+/mini-forwarder
 *.exe
 *.exe~
 *.dll
