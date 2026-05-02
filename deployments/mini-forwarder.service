@@ -22,8 +22,8 @@ RestartSec=5s
 LimitNOFILE=65535
 LimitNPROC=4096
 
-# 安全加固 (systemd >= 235)
-ProtectSystem=strict
+# 安全加固 (systemd >= 214)
+ProtectSystem=full
 ProtectHome=yes
 PrivateTmp=yes
 PrivateDevices=yes
