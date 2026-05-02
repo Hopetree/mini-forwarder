@@ -276,9 +276,9 @@ func TestApplyRuleDefaults_IdleTimeoutNilGetsDefault(t *testing.T) {
 	cfg := &Config{
 		Forwards: []ForwardRule{
 			{
-				Name:      "app",
-				Listen:    ":3000",
-				Target:    "10.0.0.1:3000",
+				Name:        "app",
+				Listen:      ":3000",
+				Target:      "10.0.0.1:3000",
 				IdleTimeout: nil,
 			},
 		},

@@ -80,7 +80,7 @@ func TestParseLevel(t *testing.T) {
 		{"dpanic", "ok"},
 		{"panic", "ok"},
 		{"fatal", "ok"},
-		{"", "ok"},  // zap treats empty string as valid (default level)
+		{"", "ok"}, // zap treats empty string as valid (default level)
 		{"invalid", "error"},
 	}
 

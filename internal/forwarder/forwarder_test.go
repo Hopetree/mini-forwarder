@@ -29,7 +29,7 @@ func findFreePort(t *testing.T) int {
 	if err != nil {
 		t.Fatalf("find free port: %v", err)
 	}
-	defer ln.Close()
+	defer func() { _ = ln.Close() }()
 	addr := ln.Addr().(*net.TCPAddr)
 	return addr.Port
 }
@@ -60,43 +60,15 @@ func echoServer(t *testing.T, listenAddr string) (closer func()) {
 			wg.Add(1)
 			go func(c net.Conn) {
 				defer wg.Done()
-				defer c.Close()
-				io.Copy(c, c)
+				defer func() { _ = c.Close() }()
+				_, _ = io.Copy(c, c)
 			}(conn)
 		}
 	}()
 	return func() {
 		cancel()
-		ln.Close()
+		_ = ln.Close()
 		wg.Wait()
-	}
-}
-
-// discardServer accepts connections but discards all data and closes.
-func discardServer(t *testing.T, listenAddr string) (closer func()) {
-	t.Helper()
-	ln, err := net.Listen("tcp", listenAddr)
-	if err != nil {
-		t.Fatalf("discard server listen: %v", err)
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		for {
-			conn, err := ln.Accept()
-			if err != nil {
-				select {
-				case <-ctx.Done():
-					return
-				default:
-					return
-				}
-			}
-			conn.Close()
-		}
-	}()
-	return func() {
-		cancel()
-		ln.Close()
 	}
 }
 
@@ -111,7 +83,7 @@ func TestRelay_Echo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("dial echo server: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	msg := "hello mini-forwarder\n"
 	if _, err := client.Write([]byte(msg)); err != nil {
@@ -119,7 +91,7 @@ func TestRelay_Echo(t *testing.T) {
 	}
 
 	// Set a read deadline so test doesn't hang.
-	client.SetReadDeadline(time.Now().Add(3 * time.Second))
+	_ = client.SetReadDeadline(time.Now().Add(3 * time.Second))
 
 	buf := make([]byte, len(msg))
 	n, err := io.ReadFull(client, buf)
@@ -140,14 +112,14 @@ func TestRelay_OneSideCloses(t *testing.T) {
 	if err != nil {
 		t.Fatalf("dial: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Close write side; server should see EOF.
 	tc := client.(*net.TCPConn)
 	_ = tc.CloseWrite()
 
 	buf := make([]byte, 1024)
-	client.SetReadDeadline(time.Now().Add(1 * time.Second))
+	_ = client.SetReadDeadline(time.Now().Add(1 * time.Second))
 	n, err := client.Read(buf)
 	if err != nil && err != io.EOF {
 		t.Logf("read after CloseWrite: %v (expected EOF or empty)", err)
@@ -202,14 +174,14 @@ func TestManager_StartStop(t *testing.T) {
 	if err != nil {
 		t.Fatalf("dial forwarder: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	msg := "integration test\n"
 	if _, err := client.Write([]byte(msg)); err != nil {
 		t.Fatalf("write to forwarder: %v", err)
 	}
 
-	client.SetReadDeadline(time.Now().Add(3 * time.Second))
+	_ = client.SetReadDeadline(time.Now().Add(3 * time.Second))
 	reader := bufio.NewReader(client)
 	line, err := reader.ReadString('\n')
 	if err != nil {
@@ -231,13 +203,13 @@ func TestManager_TargetUnreachable(t *testing.T) {
 	cfg := &config.Config{
 		Forwards: []config.ForwardRule{
 			{
-				Name:        "dead",
-				Listen:      fmt.Sprintf("127.0.0.1:%d", listenPort),
-				Target:      fmt.Sprintf("127.0.0.1:%d", unusedPort),
-				DialTimeout: 200 * time.Millisecond,
-				MaxRetries:  1,
+				Name:          "dead",
+				Listen:        fmt.Sprintf("127.0.0.1:%d", listenPort),
+				Target:        fmt.Sprintf("127.0.0.1:%d", unusedPort),
+				DialTimeout:   200 * time.Millisecond,
+				MaxRetries:    1,
 				RetryInterval: 100 * time.Millisecond,
-				KeepAlive:   10 * time.Second,
+				KeepAlive:     10 * time.Second,
 			},
 		},
 	}
@@ -256,9 +228,9 @@ func TestManager_TargetUnreachable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("dial forwarder: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
-	client.SetReadDeadline(time.Now().Add(5 * time.Second))
+	_ = client.SetReadDeadline(time.Now().Add(5 * time.Second))
 	buf := make([]byte, 1024)
 	n, err := client.Read(buf)
 	// The connection should be closed by the forwarder after retries exhausted.
@@ -323,7 +295,7 @@ func TestManager_MultipleForwarders(t *testing.T) {
 		if _, err := client.Write([]byte(msg)); err != nil {
 			t.Fatalf("forwarder %d: write: %v", i, err)
 		}
-		client.SetReadDeadline(time.Now().Add(2 * time.Second))
+		_ = client.SetReadDeadline(time.Now().Add(2 * time.Second))
 		buf := make([]byte, len(msg))
 		n, err := io.ReadFull(client, buf)
 		if err != nil {
@@ -332,7 +304,7 @@ func TestManager_MultipleForwarders(t *testing.T) {
 		if string(buf[:n]) != msg {
 			t.Errorf("forwarder %d: got %q, want %q", i, string(buf[:n]), msg)
 		}
-		client.Close()
+		_ = client.Close()
 	}
 }
 
@@ -405,7 +377,7 @@ func TestManager_Reload(t *testing.T) {
 	if err != nil {
 		t.Fatalf("dial new forwarder: %v", err)
 	}
-	client.Close()
+	_ = client.Close()
 }
 
 func TestManager_Reload_RemoveForwarder(t *testing.T) {
@@ -467,7 +439,7 @@ func TestIdleTimeoutConn(t *testing.T) {
 	if err != nil {
 		t.Fatalf("dial: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Wrap with a short idle timeout.
 	wrapped := wrapIdleTimeout(client, 200*time.Millisecond)
@@ -477,7 +449,7 @@ func TestIdleTimeoutConn(t *testing.T) {
 		t.Fatalf("write: %v", err)
 	}
 
-	wrapped.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+	_ = wrapped.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
 	buf := make([]byte, 5)
 	if _, err := io.ReadFull(wrapped, buf); err != nil {
 		t.Fatalf("read: %v", err)
@@ -485,7 +457,7 @@ func TestIdleTimeoutConn(t *testing.T) {
 
 	// Now wait longer than idle timeout and try to read again.
 	time.Sleep(300 * time.Millisecond)
-	wrapped.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+	_ = wrapped.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
 	_, err = wrapped.Read(buf)
 	// The underlying connection is still alive (echo server), but the deadline
 	// should have fired. Since wrapIdleTimeout sets a deadline before each read,
@@ -499,9 +471,9 @@ func TestIdleTimeoutConn(t *testing.T) {
 
 func TestIsTemporaryError(t *testing.T) {
 	tests := []struct {
-		name  string
-		err   error
-		want  bool
+		name string
+		err  error
+		want bool
 	}{
 		{"nil", nil, false},
 		{"context canceled", context.Canceled, false},
@@ -516,4 +488,3 @@ func TestIsTemporaryError(t *testing.T) {
 		})
 	}
 }
-

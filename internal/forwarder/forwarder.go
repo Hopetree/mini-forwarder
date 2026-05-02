@@ -26,7 +26,7 @@ import (
 // Forwarder manages a single TCP listen port and forwards all accepted
 // connections to a configured target address.
 type Forwarder struct {
-	name  string
+	name   string
 	listen string
 	target string
 
@@ -345,7 +345,7 @@ func (f *Forwarder) acceptLoop(ctx context.Context) {
 // handleConn dials the target (with retries) and relays data bidirectionally.
 func (f *Forwarder) handleConn(ctx context.Context, clientConn net.Conn) {
 	defer func() {
-		clientConn.Close()
+		_ = clientConn.Close()
 		f.conns.Delete(clientConn)
 		f.connWG.Done()
 		f.activeConn.Add(-1)
@@ -372,7 +372,7 @@ func (f *Forwarder) handleConn(ctx context.Context, clientConn net.Conn) {
 		)
 		return
 	}
-	defer targetConn.Close()
+	defer func() { _ = targetConn.Close() }()
 
 	// Apply TCP tuning on the raw target connection.
 	setTCPParams(targetConn, keepAlive)
@@ -448,7 +448,7 @@ func (f *Forwarder) stop() {
 		// Force-close all active connections so relay goroutines unblock.
 		f.conns.Range(func(key, _ any) bool {
 			if conn, ok := key.(net.Conn); ok {
-				conn.Close()
+				_ = conn.Close()
 			}
 			f.conns.Delete(key)
 			return true
@@ -517,7 +517,7 @@ type idleTimeoutConn struct {
 
 func (c *idleTimeoutConn) Read(b []byte) (int, error) {
 	if c.timeout > 0 {
-		if err := c.Conn.SetDeadline(time.Now().Add(c.timeout)); err != nil {
+		if err := c.SetDeadline(time.Now().Add(c.timeout)); err != nil {
 			return 0, err
 		}
 	}
@@ -526,7 +526,7 @@ func (c *idleTimeoutConn) Read(b []byte) (int, error) {
 
 func (c *idleTimeoutConn) Write(b []byte) (int, error) {
 	if c.timeout > 0 {
-		if err := c.Conn.SetDeadline(time.Now().Add(c.timeout)); err != nil {
+		if err := c.SetDeadline(time.Now().Add(c.timeout)); err != nil {
 			return 0, err
 		}
 	}
