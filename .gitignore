@@ -1,0 +1,33 @@
+# Binaries
+mini-forwarder
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test
+*.test
+*.out
+coverage.html
+
+# Vendor
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config with secrets
+configs/forwarder.local.yaml
+configs/forwarder.prod.yaml
+
+# Build
+dist/
