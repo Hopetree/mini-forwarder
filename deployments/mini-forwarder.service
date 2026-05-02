@@ -6,16 +6,13 @@ Wants=network-online.target
 [Service]
 Type=simple
 
-# 用户和组 (建议创建专用用户)
+# 用户和组
 User=root
 Group=root
 
 # 二进制路径
 ExecStart=/usr/local/bin/mini-forwarder -config /etc/mini-forwarder/forwarder.yaml
 ExecReload=/bin/kill -HUP $MAINPID
-
-# 配置文件
-ConfigurationDirectory=mini-forwarder
 
 # 重启策略
 Restart=on-failure
@@ -25,11 +22,9 @@ RestartSec=5s
 LimitNOFILE=65535
 LimitNPROC=4096
 
-# 安全加固
-NoNewPrivileges=yes
+# 安全加固 (systemd >= 235)
 ProtectSystem=strict
 ProtectHome=yes
-ReadWritePaths=/etc/mini-forwarder
 PrivateTmp=yes
 PrivateDevices=yes
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE
