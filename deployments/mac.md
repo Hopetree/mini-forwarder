@@ -12,6 +12,58 @@ mini-forwarder macOS 服务管理手册（launchd）
 
 ⸻
 
+com.mini-forwarder.plist 文件内容
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+"http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+
+<plist version="1.0">
+<dict>
+
+    <!-- 服务名 -->
+    <key>Label</key>
+    <string>com.mini-forwarder</string>
+
+    <!-- 启动命令 -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/mini-forwarder</string>
+        <string>-config</string>
+        <string>/etc/mini-forwarder/forwarder.yaml</string>
+    </array>
+
+    <!-- 开机启动 -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- 挂了自动重启 -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- 日志（必须加！） -->
+    <key>StandardOutPath</key>
+    <string>/var/log/mini-forwarder.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/var/log/mini-forwarder.err</string>
+
+    <!-- 工作目录（可选但推荐） -->
+    <key>WorkingDirectory</key>
+    <string>/usr/local/bin</string>
+
+    <!-- 环境变量（关键） -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+
+</dict>
+</plist>
+```
+
 🚀 常用命令
 
 1️⃣ 加载服务（首次 / 修改后）
